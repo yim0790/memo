@@ -109,7 +109,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Malgun Gothic","맑은 고딕
 
 <script>
 var COLORS=['#FFFFFF','#FDF6E3','#FFF1F0','#E8F5E9','#E3F2FD','#F3E5F5','#ECEFF1'];
-var K_AUTH='sm_auth', K_NOTES='sm_notes';
+var K_AUTH='sm_auth', K_NOTES='sm_notes', K_FS='sm_fs';
+var SIZES=[15,17,19,22], SNAMES=['작게','보통','크게','아주 크게'];
 var notes=[], cur=null, favOnly=false, kw='', hidAt=0, LOCK_MS=60000;
 var $=function(i){return document.getElementById(i)};
 
@@ -209,7 +210,7 @@ $('sbox').oninput=function(){kw=this.value;render()};
 function open(n){
   cur=n;
   $('dtitle').value=n.title;$('dbody').value=n.body;
-  paint();$('pal').classList.remove('on');show('s-note');
+  paint();applyFs();$('pal').classList.remove('on');show('s-note');
 }
 function paint(){
   $('nwrap').style.background=cur.color||'#FFFFFF';
@@ -239,8 +240,11 @@ $('nmenu').onclick=function(){
 };
 
 /* ---------- 시트 메뉴 ---------- */
+var sheetOff=null;
 function sheet(items){
-  var s=$('sheet');s.innerHTML='';
+  var s=$('sheet');
+  if(sheetOff){document.removeEventListener('click',sheetOff);sheetOff=null}
+  s.innerHTML='';
   items.forEach(function(it){
     var d=document.createElement('div');d.textContent=it[0];
     if(it[2])d.className='warn';
@@ -248,16 +252,26 @@ function sheet(items){
     s.appendChild(d);
   });
   s.classList.add('on');
+  sheetOff=off;
   setTimeout(function(){document.addEventListener('click',off)},0);
-  function off(e){if(!s.contains(e.target)){s.classList.remove('on');document.removeEventListener('click',off)}}
+  function off(e){if(!s.contains(e.target)){s.classList.remove('on');document.removeEventListener('click',off);sheetOff=null}}
 }
 $('bmenu').onclick=function(){
   sheet([
+    ['글자 크기',fsDlg],
     ['비밀번호 변경',pwDlg],
     ['백업 내보내기',exp],
     ['백업 불러오기',function(){$('fimp').click()}]
   ]);
 };
+
+/* ---------- 글자 크기 ---------- */
+function fsIdx(){var i=parseInt(localStorage.getItem(K_FS),10);return (i>=0&&i<SIZES.length)?i:1}
+function applyFs(){$('dbody').style.fontSize=SIZES[fsIdx()]+'px'}
+function fsDlg(){
+  var c=fsIdx();
+  sheet(SNAMES.map(function(n,i){return [(i===c?'\u2713 ':'')+n,function(){localStorage.setItem(K_FS,i);applyFs()}]}));
+}
 
 /* ---------- 비밀번호 변경 ---------- */
 function pwDlg(){$('d2a').value='';$('d2b').value='';$('d2c').value='';$('d2m').textContent='';$('ov2').classList.add('on');$('d2a').focus()}
@@ -306,6 +320,7 @@ document.addEventListener('visibilitychange',function(){
   }
 });
 
+applyFs();
 initLock();
 </script>
 
