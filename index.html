@@ -1,11 +1,11 @@
-<!-- 비밀번호 잠금 메모장 PWA - 목록/상세/즐겨찾기/색상/검색/삭제/백업 단일 파일 앱 -->
+<!-- 편한메모 - 비밀번호 잠금 메모장 PWA - 목록/상세/즐겨찾기/색상/검색/삭제/백업 단일 파일 앱 -->
 <!DOCTYPE html>
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-<title>비밀 메모장</title>
-<meta name="description" content="비밀번호로 잠기는 개인용 메모장">
+<title>편한메모</title>
+<meta name="description" content="간단한 개인 메모장">
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#3F51B5">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
@@ -14,7 +14,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="비밀메모">
+<meta name="apple-mobile-web-app-title" content="편한메모">
 <style>
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;padding:0;height:100%;overflow:hidden}
@@ -59,7 +59,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Malgun Gothic","맑은 고딕
 <body>
 
 <div id="s-lock" class="screen">
-  <div class="bar"><svg viewBox="0 0 24 24"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg><span class="ttl">비밀 메모장</span></div>
+  <div class="bar"><svg viewBox="0 0 24 24"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg><span class="ttl">편한메모</span></div>
   <div class="ov on"><div class="dlg">
     <h3 id="ltl">비밀번호</h3>
     <input id="lpw" type="password" inputmode="numeric" autocomplete="off">
@@ -275,7 +275,7 @@ $('d2o').onclick=function(){
 /* ---------- 백업 ---------- */
 function exp(){
   var d=new Date(),p=function(x){return String(x).padStart(2,'0')};
-  var name='secretmemo_'+d.getFullYear()+p(d.getMonth()+1)+p(d.getDate())+'.json';
+  var name='memo_'+d.getFullYear()+p(d.getMonth()+1)+p(d.getDate())+'.json';
   var blob=new Blob([JSON.stringify({v:1,exported:d.toISOString(),notes:notes},null,2)],{type:'application/json'});
   var u=URL.createObjectURL(blob),a=document.createElement('a');
   a.href=u;a.download=name;document.body.appendChild(a);a.click();

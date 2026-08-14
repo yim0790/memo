@@ -1,8 +1,8 @@
-// 비밀 메모장 PWA 서비스워커
+// 편한메모 PWA 서비스워커
 // ⚠️ 파일 구조가 바뀌면 아래 CACHE 버전 숫자를 반드시 올릴 것 (vN → vN+1).
 //    HTML은 network-first라 index만 수정한 경우엔 버전을 올리지 않아도 새로고침으로 반영됨.
 //    아이콘/매니페스트 등 정적 자원을 바꿨을 때만 버전을 올리면 됨.
-const CACHE = 'secret-memo-v1';
+const CACHE = 'pyeonhan-memo-v1';
 
 // 오프라인에서도 앱이 열리도록 캐싱할 셸. 페이지가 여러 개면 모두 나열.
 const SHELL = [

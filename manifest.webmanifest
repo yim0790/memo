@@ -1,7 +1,7 @@
 {
-  "name": "비밀 메모장",
-  "short_name": "비밀메모",
-  "description": "비밀번호로 잠기는 개인용 메모장",
+  "name": "편한메모",
+  "short_name": "편한메모",
+  "description": "간단한 개인 메모장",
   "lang": "ko",
   "start_url": "./index.html",
   "scope": "./",
