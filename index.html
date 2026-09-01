@@ -30,6 +30,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Malgun Gothic","맑은 고딕
 #sbox::placeholder{color:rgba(255,255,255,.75)}
 .body{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch}
 .row{padding:12px 16px;border-bottom:.5px solid #eee;cursor:pointer}
+.row.ord{display:flex;align-items:center;gap:8px}
+.row.ord .rc{flex:1;min-width:0}
+.mv{width:36px;height:36px;flex:0 0 auto;border:1px solid #ccc;border-radius:6px;background:#fff;color:#3F51B5;font-size:14px;display:flex;align-items:center;justify-content:center}
+.mv.off{color:#ddd;border-color:#eee}
 .row .t{font-size:15px;color:#111;display:flex;align-items:center;gap:6px}
 .row .d{font-size:11.5px;color:#999;margin-top:4px}
 .row .st{width:14px;height:14px;fill:#F5A623;flex:0 0 auto}
@@ -82,6 +86,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Malgun Gothic","맑은 고딕
     <span class="ic" id="bfav" title="즐겨찾기만"><svg viewBox="0 0 24 24"><path d="M12 3l2.9 5.9 6.5.9-4.7 4.6 1.1 6.5L12 17.8 6.2 20.9l1.1-6.5L2.6 9.8l6.5-.9z"/></svg></span>
     <span class="ic" id="bsearch" title="검색"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg></span>
     <span class="ic" id="bmenu" title="메뉴"><svg viewBox="0 0 24 24"><circle cx="12" cy="5" r="1.4"/><circle cx="12" cy="12" r="1.4"/><circle cx="12" cy="19" r="1.4"/></svg></span>
+    <span class="ic" id="bdone" style="display:none;font-size:15px;font-weight:600">완료</span>
   </div>
   <div class="body" id="rows"></div>
   <button class="fab" id="bnew">+</button>
@@ -118,11 +123,20 @@ var COLORS=['#FFFFFF','#FDF6E3','#FFF1F0','#E8F5E9','#E3F2FD','#F3E5F5','#ECEFF1
 var TCOLORS=['#222222','#D32F2F','#1565C0','#2E7D32','#757575'];
 var K_AUTH='sm_auth', K_NOTES='sm_notes', K_FS='sm_fs';
 var SIZES=[15,17,19,22], SNAMES=['작게','보통','크게','아주 크게'];
-var notes=[], cur=null, favOnly=false, kw='', hidAt=0, LOCK_MS=60000;
+var notes=[], cur=null, favOnly=false, kw='', hidAt=0, LOCK_MS=60000, editOrd=false;
 var $=function(i){return document.getElementById(i)};
 
 /* ---------- 저장 ---------- */
-function load(){try{notes=JSON.parse(localStorage.getItem(K_NOTES)||'[]')}catch(e){notes=[]}}
+function load(){try{notes=JSON.parse(localStorage.getItem(K_NOTES)||'[]')}catch(e){notes=[]}normOrd()}
+// 순서값(ord)이 없는 옛 데이터는 즐겨찾기·최신순 기준으로 한 번만 번호를 매긴다
+function normOrd(){
+  var miss=false;
+  for(var i=0;i<notes.length;i++){if(typeof notes[i].ord!=='number'||!isFinite(notes[i].ord)){miss=true;break}}
+  if(!miss)return;
+  var v=notes.slice().sort(function(a,b){return (b.fav?1:0)-(a.fav?1:0)||b.updated-a.updated});
+  for(var k=0;k<v.length;k++)v[k].ord=k;
+  save();
+}
 function save(){localStorage.setItem(K_NOTES,JSON.stringify(notes))}
 
 /* ---------- 비밀번호 해시 (SHA-256 + salt) ---------- */
@@ -165,7 +179,7 @@ function doLock(){
     check(pw).then(function(ok){ok?unlock():($('lmsg').textContent='비밀번호가 틀렸습니다',$('lpw').value='')});
   }
 }
-function unlock(){load();favOnly=false;kw='';closeSearch();render();show('s-list')}
+function unlock(){load();favOnly=false;kw='';closeSearch();if(editOrd)setOrdMode(false);render();show('s-list')}
 $('lgo').onclick=doLock;
 $('lpw').onkeydown=function(e){if(e.key==='Enter'){getAuth()?doLock():$('lpw2').focus()}};
 $('lpw2').onkeydown=function(e){if(e.key==='Enter')doLock()};
@@ -182,15 +196,20 @@ function view(){
     if(favOnly&&!n.fav)return false;
     if(q&&(n.title+' '+n.body).toLowerCase().indexOf(q)<0)return false;
     return true;
-  }).sort(function(a,b){return (b.fav?1:0)-(a.fav?1:0)||b.updated-a.updated});
+  }).sort(function(a,b){return (b.fav?1:0)-(a.fav?1:0)||a.ord-b.ord});
 }
+function canMove(v,i,dir){var j=i+dir;return j>=0&&j<v.length&&!!v[i].fav===!!v[j].fav}
 function render(){
   var v=view(), h='';
   for(var i=0;i<v.length;i++){
     var n=v[i], bg=n.color&&n.color!=='#FFFFFF';
-    h+='<div class="row" data-id="'+n.id+'"'+(bg?' style="border-left:4px solid '+n.color+';background:'+n.color+'22"':'')+'>'
-      +'<div class="t">'+(n.fav?'<svg class="st" viewBox="0 0 24 24"><path d="M12 3l2.9 5.9 6.5.9-4.7 4.6 1.1 6.5L12 17.8 6.2 20.9l1.1-6.5L2.6 9.8l6.5-.9z"/></svg>':'')
-      +esc(n.title||'(제목 없음)')+'</div><div class="d">'+fmt(n.updated)+'</div></div>';
+    var inner='<div class="t">'+(n.fav?'<svg class="st" viewBox="0 0 24 24"><path d="M12 3l2.9 5.9 6.5.9-4.7 4.6 1.1 6.5L12 17.8 6.2 20.9l1.1-6.5L2.6 9.8l6.5-.9z"/></svg>':'')
+      +esc(n.title||'(제목 없음)')+'</div><div class="d">'+fmt(n.updated)+'</div>';
+    h+='<div class="row'+(editOrd?' ord':'')+'" data-id="'+n.id+'"'+(bg?' style="border-left:4px solid '+n.color+';background:'+n.color+'22"':'')+'>';
+    h+=editOrd?('<div class="rc">'+inner+'</div>'
+        +'<span class="mv'+(canMove(v,i,-1)?'':' off')+'" data-mv="-1">▲</span>'
+        +'<span class="mv'+(canMove(v,i,1)?'':' off')+'" data-mv="1">▼</span>'):inner;
+    h+='</div>';
   }
   if(!v.length)h='<div class="empty">'+(notes.length?'검색 결과가 없습니다':'메모가 없습니다<br>오른쪽 아래 + 를 눌러 시작하세요')+'</div>';
   $('rows').innerHTML=h;
@@ -198,10 +217,24 @@ function render(){
 }
 $('rows').onclick=function(e){
   var r=e.target.closest('.row');if(!r)return;
+  if(editOrd){
+    var mv=e.target.closest('.mv');
+    if(mv&&!mv.classList.contains('off'))move(r.dataset.id,parseInt(mv.dataset.mv,10));
+    return;
+  }
   open(notes.filter(function(n){return n.id===r.dataset.id})[0]);
 };
+// 화면에 보이는 순서 기준으로 이웃과 ord 값을 맞바꾼다 (즐겨찾기 그룹 안에서만 이동)
+function move(id,dir){
+  var v=view(), i=-1;
+  for(var k=0;k<v.length;k++){if(v[k].id===id){i=k;break}}
+  if(i<0||!canMove(v,i,dir))return;
+  var a=v[i], b=v[i+dir], t=a.ord; a.ord=b.ord; b.ord=t;
+  save();render();
+}
 $('bnew').onclick=function(){
-  var n={id:String(Date.now())+Math.random().toString(36).slice(2,7),title:'',body:'',color:'#FFFFFF',tcolor:'#222222',bold:false,fav:false,updated:Date.now()};
+  var mo=0;for(var i=0;i<notes.length;i++){if(notes[i].ord<mo)mo=notes[i].ord}
+  var n={id:String(Date.now())+Math.random().toString(36).slice(2,7),title:'',body:'',color:'#FFFFFF',tcolor:'#222222',bold:false,fav:false,ord:mo-1,updated:Date.now()};
   notes.push(n);save();open(n);setTimeout(function(){$('dtitle').focus()},200);
 };
 $('bfav').onclick=function(){favOnly=!favOnly;render()};
@@ -217,7 +250,7 @@ $('sbox').oninput=function(){kw=this.value;render()};
 function open(n){
   cur=n;
   $('dtitle').value=n.title;$('dbody').value=n.body;
-  paint();applyFs();$('pal').classList.remove('on');show('s-note');
+  paint();applyFs();$('pal').classList.remove('on');show('s-note');pushStep();
 }
 function paint(){
   $('nwrap').style.background=cur.color||'#FFFFFF';
@@ -234,10 +267,23 @@ function paint(){
 function touch(){cur.updated=Date.now();save()}
 $('dtitle').oninput=function(){cur.title=this.value;touch()};
 $('dbody').oninput=function(){cur.body=this.value;touch()};
-$('nback').onclick=function(){
-  if(!cur.title&&!cur.body)notes=notes.filter(function(n){return n.id!==cur.id});
-  save();render();show('s-list');
-};
+$('nback').onclick=function(){history.back()};
+// 안드로이드 하드웨어 뒤로가기 대응 — 화면을 열 때 히스토리를 한 칸 쌓고, 뒤로가기로 되돌린다
+function pushStep(){try{history.pushState({m:1},'')}catch(e){}}
+function goList(){
+  $('sheet').classList.remove('on');
+  if(sheetOff){document.removeEventListener('click',sheetOff);sheetOff=null}
+  $('ov2').classList.remove('on');$('pal').classList.remove('on');
+  render();show('s-list');
+}
+function leaveNote(){
+  if(cur&&!cur.title&&!cur.body)notes=notes.filter(function(n){return n.id!==cur.id});
+  save();goList();
+}
+window.addEventListener('popstate',function(){
+  if($('s-note').classList.contains('on')){leaveNote();return}
+  if(editOrd){setOrdMode(false);return}
+});
 $('nfav').onclick=function(){cur.fav=!cur.fav;touch();paint()};
 $('npal').onclick=function(){$('pal').classList.toggle('on')};
 $('pal').onclick=function(e){
@@ -249,7 +295,7 @@ $('pal').onclick=function(e){
 $('nmenu').onclick=function(){
   sheet([['삭제',function(){
     if(!confirm('이 메모를 삭제할까요?'))return;
-    notes=notes.filter(function(n){return n.id!==cur.id});save();render();show('s-list');
+    notes=notes.filter(function(n){return n.id!==cur.id});save();history.back();
   },true]]);
 };
 
@@ -270,8 +316,17 @@ function sheet(items){
   setTimeout(function(){document.addEventListener('click',off)},0);
   function off(e){if(!s.contains(e.target)){s.classList.remove('on');document.removeEventListener('click',off);sheetOff=null}}
 }
+function setOrdMode(v){
+  editOrd=v;
+  ['bfav','bsearch','bmenu'].forEach(function(x){$(x).style.display=v?'none':''});
+  $('bdone').style.display=v?'':'none';
+  $('ltitle').textContent=v?'순서 편집':'내 메모';
+  render();
+}
+$('bdone').onclick=function(){history.back()};
 $('bmenu').onclick=function(){
   sheet([
+    ['순서 편집',function(){favOnly=false;closeSearch();setOrdMode(true);pushStep()}],
     ['글자 크기',fsDlg],
     ['비밀번호 변경',pwDlg],
     ['백업 내보내기',exp],
@@ -320,8 +375,8 @@ $('fimp').onchange=function(){
       notes=d.notes.map(function(n){return {
         id:String(n.id||Date.now()+Math.random()),title:String(n.title||''),body:String(n.body||''),
         color:COLORS.indexOf(n.color)>=0?n.color:'#FFFFFF',tcolor:TCOLORS.indexOf(n.tcolor)>=0?n.tcolor:'#222222',bold:!!n.bold,
-        fav:!!n.fav,updated:Number(n.updated)||Date.now()};});
-      save();render();alert('메모 '+notes.length+'건을 불러왔습니다');
+        fav:!!n.fav,ord:(typeof n.ord==='number'&&isFinite(n.ord))?n.ord:null,updated:Number(n.updated)||Date.now()};});
+      normOrd();save();render();alert('메모 '+notes.length+'건을 불러왔습니다');
     }catch(e){alert('올바른 백업 파일이 아닙니다')}
   };
   r.readAsText(f);this.value='';
