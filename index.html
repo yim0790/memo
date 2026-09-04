@@ -40,7 +40,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Malgun Gothic","맑은 고딕
 .empty{text-align:center;color:#aaa;padding:60px 20px;font-size:14px;line-height:1.8}
 .fab{position:fixed;right:20px;bottom:calc(22px + env(safe-area-inset-bottom));width:56px;height:56px;border-radius:50%;background:#3F51B5;color:#fff;display:flex;align-items:center;justify-content:center;font-size:30px;line-height:1;border:0;box-shadow:0 3px 10px rgba(0,0,0,.28);cursor:pointer}
 #dtitle{border:0;outline:none;background:transparent;font-size:17px;font-weight:600;color:#111;width:100%;padding:14px 16px 6px;font-family:inherit}
-#dbody{border:0;outline:none;background:transparent;flex:1;width:100%;padding:6px 16px 20px;font-size:15px;line-height:2;color:#222;resize:none;font-family:inherit}
+#dbody{border:0;outline:none;background:transparent;flex:1;width:100%;padding:6px 16px 20px;font-size:15px;line-height:1.7;color:#222;resize:none;font-family:inherit}
 #pal{flex:0 0 auto;border-top:.5px solid #ddd;background:#fff;padding:10px 14px;padding-bottom:calc(10px + env(safe-area-inset-bottom));display:none;flex-direction:column;gap:9px}
 #pal.on{display:flex}
 .prow{display:flex;align-items:center;gap:9px}
@@ -59,9 +59,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Malgun Gothic","맑은 고딕
 .dlg .msg{color:#D32F2F;font-size:13px;margin:-6px 0 12px;min-height:17px}
 .dlg .btns{display:flex;justify-content:flex-end;gap:22px;padding-top:4px}
 .dlg .btns button{border:0;background:transparent;color:#3F51B5;font-size:15px;font-weight:600;padding:8px 2px;cursor:pointer;font-family:inherit}
-.sheet{position:fixed;left:0;right:0;bottom:0;background:#fff;border-radius:14px 14px 0 0;padding:8px 0 calc(8px + env(safe-area-inset-bottom));display:none;z-index:30}
+.sheet{position:fixed;left:0;right:0;bottom:0;background:#F4F5F7;border-radius:16px 16px 0 0;padding:0 0 calc(8px + env(safe-area-inset-bottom));display:none;z-index:30;box-shadow:0 -3px 18px rgba(0,0,0,.22)}
 .sheet.on{display:block}
-.sheet div{padding:15px 22px;font-size:15px;cursor:pointer;border-bottom:.5px solid #f2f2f2}
+.sheet .grab{height:4px;width:38px;border-radius:2px;background:#c9ccd1;margin:8px auto 6px;padding:0;border:0;cursor:default}
+.sheet div{padding:15px 22px;font-size:15px;cursor:pointer;border-bottom:.5px solid #e3e5e9;color:#1f2430}
 .sheet div:last-child{border:0}
 .sheet .warn{color:#D32F2F}
 </style>
@@ -107,6 +108,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Malgun Gothic","맑은 고딕
   <div id="pal"></div>
 </div>
 
+<div class="ov" id="scrim"></div>
 <div class="sheet" id="sheet"></div>
 <div class="ov" id="ov2"><div class="dlg">
   <h3 id="d2t">비밀번호 변경</h3>
@@ -271,7 +273,7 @@ $('nback').onclick=function(){history.back()};
 // 안드로이드 하드웨어 뒤로가기 대응 — 화면을 열 때 히스토리를 한 칸 쌓고, 뒤로가기로 되돌린다
 function pushStep(){try{history.pushState({m:1},'')}catch(e){}}
 function goList(){
-  $('sheet').classList.remove('on');
+  hideSheet();
   if(sheetOff){document.removeEventListener('click',sheetOff);sheetOff=null}
   $('ov2').classList.remove('on');$('pal').classList.remove('on');
   render();show('s-list');
@@ -301,20 +303,21 @@ $('nmenu').onclick=function(){
 
 /* ---------- 시트 메뉴 ---------- */
 var sheetOff=null;
+function hideSheet(){$('sheet').classList.remove('on');$('scrim').classList.remove('on')}
 function sheet(items){
   var s=$('sheet');
   if(sheetOff){document.removeEventListener('click',sheetOff);sheetOff=null}
-  s.innerHTML='';
+  s.innerHTML='<span class="grab"></span>';
   items.forEach(function(it){
     var d=document.createElement('div');d.textContent=it[0];
     if(it[2])d.className='warn';
-    d.onclick=function(){s.classList.remove('on');it[1]()};
+    d.onclick=function(){hideSheet();it[1]()};
     s.appendChild(d);
   });
-  s.classList.add('on');
+  s.classList.add('on');$('scrim').classList.add('on');
   sheetOff=off;
   setTimeout(function(){document.addEventListener('click',off)},0);
-  function off(e){if(!s.contains(e.target)){s.classList.remove('on');document.removeEventListener('click',off);sheetOff=null}}
+  function off(e){if(!s.contains(e.target)){hideSheet();document.removeEventListener('click',off);sheetOff=null}}
 }
 function setOrdMode(v){
   editOrd=v;
